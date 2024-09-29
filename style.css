@@ -1,0 +1,24 @@
+a[href='/logout']:hover {
+    color: #f8f8f8;
+}
+
+a[href='/logout'] {
+    border: 1px solid rgba(253, 0, 0, 0.2) !important;
+}
+
+.due-passed {
+    background-color: #f8d7da !important;
+    color: #721c24 !important;
+}
+
+.card {
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: scale(1.01);
+}
+
+.task-complete {
+    background-color: #B4F8C3CC !important;
+}
