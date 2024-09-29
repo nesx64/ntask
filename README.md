@@ -5,7 +5,7 @@
 # NTASK
 <img src='./ntask.png'>
 
-</div>>
+</div>
 
 </center>
 
