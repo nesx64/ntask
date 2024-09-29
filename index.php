@@ -3,6 +3,8 @@ $pdo = new PDO('mysql:host=localhost;dbname=ntask', 'root', '2343');
 
 $login = false;
 $register = false;
+$admin = false;
+$allow_pannel = false;
 $connected = false;
 
 $user_registration_status = "";
@@ -23,9 +25,18 @@ if (isset($_COOKIE['userID'])) {
         session_start();
         $current_user = $user['username'];
         global $current_user;
+        if ($user['admin'] == 1) {
+            $admin = true;
+        }
     } else {
         setcookie('userID', '', time() - 3600);
     }
+}
+
+if ($_SERVER['REQUEST_URI'] == '/panel' && $admin) {
+    $allow_panel = true;
+} else if ($_SERVER['REQUEST_URI'] == '/panel' && !$admin) {
+    header('Location: /');
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
@@ -92,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
         try {
             $stmt->execute();
             echo 'Task created successfully';
+            header('Location: /');
         } catch (PDOException $e) {
             var_dump($e);
             echo 'Task creation failed';
@@ -110,12 +122,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
             var_dump($e);
         }
     } else if (str_starts_with($_SERVER['REQUEST_URI'], '/delete-task')) {
-            $query = "DELETE FROM task WHERE id = {$_GET['id']}";
+        $query = "DELETE FROM task WHERE id = {$_GET['id']} AND user_id = {$_COOKIE['userID']}";
         $stmt = $pdo->prepare($query);
         try {
             $stmt->execute();
+            header('Location: /');
         } catch (PDOException $e) {
-            var_dump($e);
+            echo "Task deletion failed, probably because you don't have permission to delete a task that isn't your :).";
         }
 
     }
@@ -137,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
 <header>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/">NTask Manager</a>
+            <a class="navbar-brand" href="/"> <img src="./ntask.png" width="60px"> NTask </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -157,6 +170,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
                         <li class="nav-item">
                             <a class="nav-link active" aria-current="page" href="/">Home</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/create">Create task</a>
+                        </li>
+                        <?php if ($admin) { ?>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/panel">Admin panel</a>
+                            </li>
+                        <?php } ?>
+
                         <li class="nav-item">
                             <a class="nav-link btn btn-outline-danger" href="/logout">Logout</a>
                         </li>
@@ -234,8 +256,36 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
                 <?php echo $_COOKIE['logged_out_message']; ?>
             </div>
         <?php } ?>
-        <h1 class="text-center">Welcome to NTask.</h1>
+        <h1 class="text-center"><img src="./ntask.png">Welcome to NTask.</h1>
         <p class="text-center">Please <a href="/login"> login</a> or <a href="/register"> register</a> to continue.</p>
+    </div>
+<?php } elseif ($allow_panel) { ?>
+    <div class="d-flex flex-column justify-content-center align-items-center" style="min-height:90vh">
+        <h1> Admin panel </h1>
+        <p> Welcome to the admin panel, <strong><?php echo $current_user; ?>.</strong></p>
+        <div>
+            <h3> Users </h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Username</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Admin</th>
+                </tr>
+                </thead>
+                <tbody>
+                <?php foreach ($pdo->query("SELECT * FROM user") as $user) { ?>
+                    <tr>
+                        <th scope="row"><?php echo $user['id']; ?></th>
+                        <td><?php echo $user['username']; ?></td>
+                        <td><?php echo $user['email']; ?></td>
+                        <td style="<?php echo $user['admin'] == 0 ? "color: #721c24 !important; background-color:#f8d7da !important" : "color: #1E6B2ECC !important; background-color:#B4F8C3CC !important"; ?>; font-weight: bold"><?php echo $user['admin'] == 1 ? "YES" : "NO"; ?></td>
+                    </tr>
+                <?php } ?>
+                </tbody>
+            </table>
+        </div>
     </div>
 <?php } else { ?>
     <?php if ($_SERVER['REQUEST_URI'] == "/create") { ?>
@@ -264,19 +314,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
         </div>
     <?php } else { ?>
         <div class="d-flex flex-column justify-content-center align-items-center" style="min-height:90vh">
-            <h1 class="text-center">Welcome to NTask.</h1>
+            <h1 class="text-center"><img src="./ntask.png">Welcome to NTask.</h1>
             <p class="text-center">You are logged in as
                 <strong><?php echo isset($current_user) ? $current_user : "Stranger..."; ?></strong></p>
             <?php if ($user['admin'] == 1) { ?>
-                <p class="text-center">You are an administrator.</p>
-                <a href="/panel" class="btn btn-warning"> Go to panel </a>
+                <div class="d-flex flex-column justify-content-center align-items-center alert alert-warning"
+                     style="border:1px solid rgba(0,0,0,0.175); border-radius: 0.375rem; padding:16px">
+                    <p class="text-center">You are an administrator.</p>
+                    <a href="/panel" class="btn btn-warning"> Go to panel </a>
+                </div>
             <?php } ?>
             <hr style="background-color:black">
             <h4> Scroll down to access all your tasks, or create one.</h4>
             <a href="/create" class="btn btn-success"> Create a new task </a>
             <hr>
             <div class="container d-flex align-items-center w-100 flex-wrap"
-                 style="border: solid 1px rgba(0,0,0,0.175); border-radius:0.375rem">
+                 style="border: solid 1px rgba(0,0,0,0.175); border-radius:0.375rem; background-color: rgba(0,0,0,0.020">
                 <?php foreach ($pdo->query("SELECT * FROM task WHERE user_id = " . $_COOKIE['userID'] . " ORDER BY due_date") as $task) { ?>
                     <div class="card m-2 <?php if (strtotime($task['due_date']) < time() && $task['completed'] == 0) {
                         echo "due-passed";
@@ -295,14 +348,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
                                 <?php echo $task['description']; ?>
                             </p>
                             <?php if ($task['completed'] == 1) { ?>
-                                <p class="card-text" style="background-color: rgba(135,227,152,0.8); padding:8px; border-radius:0.375rem">
+                                <p class="card-text"
+                                   style="background-color: rgba(135,227,152,0.8); padding:8px; border-radius:0.375rem">
                                     Completed
                                 </p>
                             <?php } else { ?>
                                 <p class="card-text">
                                     Due date: <?php echo date('d/m/Y H:i', strtotime($task['due_date'])); ?>
                                 </p>
-                                <a href="/complete?id=<?php echo $task['id']; ?>" class="btn btn-info">Set as complete</a>
+                                <a href="/complete?id=<?php echo $task['id']; ?>" class="btn btn-info">Set as
+                                    complete</a>
                             <?php } ?>
                             <a href="/delete-task?id=<?php echo $task['id']; ?>" class="btn btn-danger">Delete</a>
                         </div>
