@@ -7,8 +7,8 @@ use ntask;
 
 create table user (
     id int primary key not null auto_increment,
-    username varchar(255) not null,
-    email varchar(255) not null,
+    username varchar(255) not null unique,
+    email varchar(255) not null unique,
     password varchar(255) not null,
     admin tinyint not null default 0
 );
@@ -19,5 +19,7 @@ create table task (
     description text,
     completed boolean not null default false,
     image mediumblob,
-    due_date timestamp
+    due_date timestamp,
+    user_ID int,
+    foreign key (user_ID) references user(id)
 );

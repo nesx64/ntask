@@ -1,11 +1,12 @@
 <?php
-$pdo = new PDO('mysql:host=localhost;dbname=ntask', 'root', '2343');
+$pdo = new PDO('mysql:host=localhost;dbname=ntask', 'root', 'Lampadaire33');
 
 $login = false;
 $register = false;
 $admin = false;
-$allow_pannel = false;
+$allow_panel = false;
 $connected = false;
+$current_user = 'Stranger';
 
 $user_registration_status = "";
 $user_login_status = "";
@@ -40,7 +41,6 @@ if ($_SERVER['REQUEST_URI'] == '/panel' && $admin) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
-    echo 'Hello login';
     $username = isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '';
     $password = isset($_POST['password']) ? htmlspecialchars($_POST['password']) : '';
 
@@ -58,7 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
         }
     }
 } else if ($_SERVER['REQUEST_METHOD'] == 'POST' && $register) {
-    echo 'Hello register';
     $username = isset($_POST['username']) ? htmlspecialchars($_POST['username']) : '';
     $password = isset($_POST['password']) ? htmlspecialchars($_POST['password']) : '';
     $email = isset($_POST['email']) && filter_var($_POST['email'], FILTER_VALIDATE_EMAIL) ? filter_var($_POST['email'], FILTER_VALIDATE_EMAIL) : '';
@@ -69,7 +68,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
             $pdo->query($registerQuery);
             $user_registration_status = "User registered successfully";
         } catch (PDOException $e) {
-            var_dump($e);
             $user_registration_status = "User registration failed, username already exists.";
         }
     }
@@ -150,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
 <header>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
         <div class="container-fluid">
-            <a class="navbar-brand" href="/"> <img src="./ntask.png" width="60px"> NTask </a>
+            <a class="navbar-brand" href="/"> <img src="./ntask.png" width="60px" alt="ntask logo"> NTask </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
@@ -225,8 +223,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
     } ?>
     <div class="d-flex flex-column justify-content-center align-items-center" style="min-height:90vh">
         <h1 class="text-center">Create a new account</h1>
-        <?php if (!empty($user_registration_status)) { ?>
+        <?php if (!empty($user_registration_status) && str_starts_with($user_registration_status, "User registration failed")) { ?>
             <div class="alert alert-danger" role="alert">
+                <?php echo $user_registration_status; ?>
+            </div>
+        <?php } else if (!empty($user_registration_status)) { ?>
+            <div class="alert alert-success" role="alert">
                 <?php echo $user_registration_status; ?>
             </div>
         <?php } ?>
@@ -256,8 +258,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
                 <?php echo $_COOKIE['logged_out_message']; ?>
             </div>
         <?php } ?>
-        <h1 class="text-center"><img src="./ntask.png">Welcome to NTask.</h1>
-        <p class="text-center">Please <a href="/login"> login</a> or <a href="/register"> register</a> to continue.</p>
+        <h1 class="text-center"><img src="./ntask.png" alt="ntask logo">Welcome to NTask.</h1>
+        <p class="text-center">Please <a href="/login"> log in</a> or <a href="/register"> register</a> to continue.</p>
     </div>
 <?php } elseif ($allow_panel) { ?>
     <div class="d-flex flex-column justify-content-center align-items-center" style="min-height:90vh">
@@ -307,16 +309,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && $login) {
                 </div>
                 <div class="mb-3">
                     <label for="taskImage" class="form-label">Image (for style)</label>
-                    <input name="taskImage" type="file" class="form-control" id="taskImage">
+                    <input name="taskImage" type="file" class="form-control" id="taskImage" required>
                 </div>
                 <button type="submit" class="btn btn-success">Create task</button>
             </form>
         </div>
     <?php } else { ?>
         <div class="d-flex flex-column justify-content-center align-items-center" style="min-height:90vh">
-            <h1 class="text-center"><img src="./ntask.png">Welcome to NTask.</h1>
+            <h1 class="text-center"><img src="./ntask.png" alt="ntask logo">Welcome to NTask.</h1>
             <p class="text-center">You are logged in as
-                <strong><?php echo isset($current_user) ? $current_user : "Stranger..."; ?></strong></p>
+                <strong><?php echo $current_user ?? "Stranger..."; ?></strong></p>
             <?php if ($user['admin'] == 1) { ?>
                 <div class="d-flex flex-column justify-content-center align-items-center alert alert-warning"
                      style="border:1px solid rgba(0,0,0,0.175); border-radius: 0.375rem; padding:16px">
